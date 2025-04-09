@@ -1,0 +1,101 @@
+@startuml
+title Protocol Translator - Code Diagram
+
+!includeurl ../../include/C4.puml
+
+namespace com.smarthome.integration.protocol {
+    interface ProtocolTranslator {
+        + translate(message: DeviceMessage): DeviceMessage
+        + supports(protocol: ProtocolType): boolean
+    }
+
+    class DefaultProtocolTranslator {
+        - translators: Map<ProtocolPair, MessageTranslator>
+        + translate(message: DeviceMessage): DeviceMessage
+        + supports(protocol: ProtocolType): boolean
+        - findTranslator(source: ProtocolType, target: ProtocolType): MessageTranslator
+    }
+
+    interface MessageTranslator {
+        + translate(message: DeviceMessage): DeviceMessage
+        + getSourceProtocol(): ProtocolType
+        + getTargetProtocol(): ProtocolType
+    }
+
+    class MqttToHttpTranslator {
+        + translate(message: DeviceMessage): DeviceMessage
+        + getSourceProtocol(): ProtocolType
+        + getTargetProtocol(): ProtocolType
+    }
+
+    class HttpToMqttTranslator {
+        + translate(message: DeviceMessage): DeviceMessage
+        + getSourceProtocol(): ProtocolType
+        + getTargetProtocol(): ProtocolType
+    }
+
+    enum ProtocolType {
+        MQTT
+        HTTP
+        WEBSOCKET
+    }
+
+    class ProtocolPair {
+        - source: ProtocolType
+        - target: ProtocolType
+        + equals(): boolean
+        + hashCode(): int
+    }
+
+    class DeviceMessage {
+        - id: String
+        - deviceId: String
+        - protocol: ProtocolType
+        - messageType: MessageType
+        - payload: Map<String, Object>
+        - timestamp: Instant
+        + validate(): boolean
+    }
+
+    enum MessageType {
+        COMMAND
+        TELEMETRY
+        STATE
+        EVENT
+    }
+
+    class MessageValidator {
+        + validate(message: DeviceMessage): ValidationResult
+        - validateSchema(message: DeviceMessage): boolean
+        - validatePayload(message: DeviceMessage): boolean
+    }
+
+    class ValidationResult {
+        - valid: boolean
+        - errors: List<String>
+    }
+
+    class TranslationException {
+        - errorCode: String
+        - details: Map<String, Object>
+    }
+}
+
+' Class relationships
+ProtocolTranslator <|.. DefaultProtocolTranslator
+MessageTranslator <|.. MqttToHttpTranslator
+MessageTranslator <|.. HttpToMqttTranslator
+
+DefaultProtocolTranslator *-- MessageTranslator
+DefaultProtocolTranslator *-- ProtocolPair
+
+DeviceMessage *-- ProtocolType
+DeviceMessage *-- MessageType
+
+MessageValidator ..> DeviceMessage
+MessageValidator ..> ValidationResult
+
+DefaultProtocolTranslator ..> MessageValidator
+DefaultProtocolTranslator ..> TranslationException
+
+@enduml

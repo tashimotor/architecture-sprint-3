@@ -1,0 +1,90 @@
+@startuml
+title SmartHome Service Container Diagram
+
+top to bottom direction
+
+!includeurl ../include/C4_Container.puml
+
+Person(user, "User", "A user of the smart home system")
+Person(support_manager, "Support Manager", "Customer support")
+Person(sales_manager, "Sales Manager", "Sales and marketing")
+System_Ext(sensor, "Partner Sensors", "Various IOT devices that gather metrics")
+System_Ext(controller, "Partner Controllers", "Various IOT devices that control home automation")
+System_Ext(partner_system, "Partner Systems", "External partner device management systems")
+System_Ext(heat_sensor, "SmartHome Heat Sensor", "Company's temperature sensor device")
+System_Ext(heat_controller, "SmartHome Heat Controller", "Company's heating control device")
+
+Container_Boundary(smarthome, "Smart Home System") {
+    Container(api_gateway, "API Gateway", "Nginx/Ingress", "Routes requests and handles API versioning")
+
+    Container(auth_service, "Auth Service", "Spring Boot", "Authentication, authorization and roles management")
+    ContainerDb(auth_db, "Auth DB", "PostgreSQL", "Stores user credentials, permissions and subscription data")
+
+    Container(device_service, "Device Management", "Spring Boot", "Manages device registration, status and protocol adapters")
+    ContainerDb(device_db, "Device DB", "PostgreSQL", "Stores device information and protocol configurations")
+
+    Container(integration_service, "Integration Service", "Spring Boot", "Handles partner device integration and protocol translation")
+
+    Container(scenario_service, "Scenario Service", "Spring Boot", "Manages user-defined automation scenarios")
+    ContainerDb(scenario_db, "Scenario DB", "PostgreSQL", "Stores automation rules and scenarios")
+
+    Container(monitoring_service, "Monitoring Service", "Spring Boot", "Handles device telemetry and monitoring")
+    ContainerDb(telemetry_db, "Telemetry DB", "TimescaleDB", "Stores device telemetry data")
+
+    Container(notification_service, "Notification Service", "Spring Boot", "Handles user notifications and alerts")
+
+    Container(analytics_service, "Analytics Service", "Spring Boot", "Processes and analyzes system events and metrics")
+    ContainerDb(analytics_db, "Analytics DB", "ClickHouse", "Stores analytics data for fast OLAP queries")
+
+    Container(message_broker, "Message Broker", "Apache Kafka", "Handles event streaming between services")
+
+    Container(web_app, "Web Application", "React", "SaaS self-service portal")
+    Container(mobile_app, "Mobile Application", "React Native", "Mobile access to smart home")
+    Container(admin_app, "Admin Portal", "React", "Support and sales teams management portal")
+}
+
+Rel(user, web_app, "Uses", "HTTPS")
+Rel(user, mobile_app, "Uses", "HTTPS")
+Rel(web_app, api_gateway, "Uses", "HTTPS")
+Rel(mobile_app, api_gateway, "Uses", "HTTPS")
+
+Rel(support_manager, admin_app, "Access to users IOT devices and integrations for support", "HTTPS")
+Rel(sales_manager, admin_app, "Get analytics for sales and marketing", "HTTPS")
+Rel(admin_app, api_gateway, "Uses", "HTTPS")
+
+Rel(sensor, integration_service, "Sends metrics", "MQTT/HTTP")
+Rel(integration_service, controller, "Controls", "MQTT/HTTP")
+Rel(partner_system, integration_service, "Integrates with", "REST/MQTT")
+
+Rel(heat_sensor, integration_service, "Sends temperature data", "MQTT")
+Rel(integration_service, heat_controller, "Controls heating", "MQTT")
+
+Rel(api_gateway, auth_service, "Authenticates requests", "HTTP")
+Rel(auth_service, auth_db, "Reads/Writes", "JDBC")
+
+Rel(api_gateway, device_service, "Manages devices", "HTTP")
+Rel(device_service, device_db, "Reads/Writes", "JDBC")
+Rel(device_service, integration_service, "Coordinates with", "HTTP")
+Rel(device_service, message_broker, "Publishes device lifecycle events", "Kafka")
+
+Rel(api_gateway, scenario_service, "Manages scenarios", "HTTP")
+Rel(scenario_service, scenario_db, "Reads/Writes", "JDBC")
+Rel(scenario_service, message_broker, "Publishes scenario events", "Kafka")
+Rel(scenario_service, integration_service, "Executes automation actions", "HTTP")
+
+Rel(api_gateway, monitoring_service, "Retrieves monitoring data", "HTTP")
+Rel(integration_service, monitoring_service, "Sends telemetry", "HTTP")
+Rel(integration_service, message_broker, "Publishes device events", "Kafka")
+Rel(monitoring_service, telemetry_db, "Stores metrics", "JDBC")
+Rel(monitoring_service, message_broker, "Publishes monitoring events", "Kafka")
+Rel(monitoring_service, scenario_service, "Triggers scenarios", "HTTP")
+
+Rel(message_broker, notification_service, "Sends events", "Kafka")
+Rel(notification_service, user, "Sends notifications", "WebSocket")
+Rel(notification_service, support_manager, "Sends notifications", "WebSocket")
+
+Rel(message_broker, analytics_service, "Streams events", "Kafka")
+Rel(analytics_service, analytics_db, "Stores analytics", "JDBC")
+Rel(api_gateway, analytics_service, "Retrieves analytics", "HTTP")
+
+@enduml
