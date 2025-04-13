@@ -1,0 +1,67 @@
+@startuml
+title Integration Service - Component Diagram
+
+!includeurl ../include/C4_Component.puml
+
+Container(api_gateway, "API Gateway", "Nginx/Ingress", "Routes requests")
+Container_Ext(device_service, "Device Service", "Spring Boot", "Manages devices")
+Container_Ext(monitoring_service, "Monitoring Service", "Spring Boot", "Handles monitoring")
+Container_Ext(scenario_service, "Scenario Service", "Spring Boot", "Manages scenarios")
+Container_Ext(message_broker, "Message Broker", "Apache Kafka", "Event streaming")
+
+System_Ext(partner_system, "Partner Systems", "External device management systems")
+System_Ext(mqtt_devices, "MQTT Devices", "Smart home devices using MQTT")
+System_Ext(http_devices, "HTTP Devices", "Smart home devices using HTTP")
+
+Container_Boundary(integration_service, "Integration Service") {
+    Component(device_gateway, "Device Gateway", "Spring WebFlux", "Handles device connections and protocol routing")
+
+    Component(mqtt_adapter, "MQTT Adapter", "Spring Integration", "Handles MQTT protocol communication")
+    Component(http_adapter, "HTTP Adapter", "Spring WebClient", "Handles HTTP/REST protocol communication")
+    Component(protocol_translator, "Protocol Translator", "Spring Integration", "Translates between different protocols")
+
+    Component(device_state_manager, "Device State Manager", "Spring Service", "Manages device state and caching")
+    ComponentDb(state_cache, "State Cache", "Redis", "Caches device states")
+
+    Component(command_processor, "Command Processor", "Spring Service", "Processes and validates device commands")
+    Component(telemetry_processor, "Telemetry Processor", "Spring Service", "Processes device telemetry data")
+
+    Component(event_publisher, "Event Publisher", "Spring Kafka", "Publishes device events to Kafka")
+    Component(metrics_collector, "Metrics Collector", "Micrometer", "Collects service metrics")
+
+    Component(security_validator, "Security Validator", "Spring Security", "Validates device security")
+    Component(rate_limiter, "Rate Limiter", "Bucket4j", "Controls request rates")
+}
+
+' Internal connections
+Rel(device_gateway, mqtt_adapter, "Routes MQTT traffic")
+Rel(device_gateway, http_adapter, "Routes HTTP traffic")
+Rel(mqtt_adapter, protocol_translator, "Translates protocol")
+Rel(http_adapter, protocol_translator, "Translates protocol")
+
+Rel(protocol_translator, command_processor, "Sends commands")
+Rel(protocol_translator, telemetry_processor, "Sends telemetry")
+
+Rel(device_state_manager, state_cache, "Reads/Writes state")
+Rel(command_processor, device_state_manager, "Updates state")
+Rel(telemetry_processor, device_state_manager, "Updates state")
+
+Rel(command_processor, event_publisher, "Publishes events")
+Rel(telemetry_processor, event_publisher, "Publishes events")
+
+Rel(device_gateway, security_validator, "Validates")
+Rel(device_gateway, rate_limiter, "Controls rates")
+
+' External connections
+Rel_Up(api_gateway, device_gateway, "Sends requests", "HTTP")
+Rel_Up(device_service, device_gateway, "Manages devices", "HTTP")
+Rel_Up(scenario_service, device_gateway, "Executes scenarios", "HTTP")
+
+Rel_Left(mqtt_devices, mqtt_adapter, "Connects", "MQTT")
+Rel_Right(http_devices, http_adapter, "Connects", "HTTP/REST")
+Rel_Right(partner_system, http_adapter, "Integrates", "HTTP/REST")
+
+Rel_Down(event_publisher, message_broker, "Publishes events", "Kafka")
+Rel_Down(telemetry_processor, monitoring_service, "Sends telemetry", "HTTP")
+
+@enduml

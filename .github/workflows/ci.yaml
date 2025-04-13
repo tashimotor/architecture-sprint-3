@@ -4,32 +4,42 @@ on:
   push:
 
 jobs:
-  docker:
+  generate-diagrams:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Checkout
+      - name: Checkout Source
         uses: actions/checkout@v4
-      -
-        name: Set up QEMU
+
+      - name: Generate SVG Diagrams
+        uses: Timmy/plantuml-action@v1
+        with:
+          args: -v -DRELATIVE_INCLUDE="relative" diagrams/context/*.puml diagrams/container/*.puml diagrams/component/*.puml diagrams/code/*/*.puml diagrams/er/*.puml
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "feature(diagrams): update diagrams images"
+
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
-      -
-        name: Set up Docker Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      -
-        name: Login to Docker Hub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      -
-        name: Build and push
+      - name: Build and push
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64,linux/arm64
           context: smart-home-monolith
           push: true
-          tags: ghcr.io/yandex-practicum/architecture-sprint-3:latest
+          tags: ghcr.io/tashimotor/architecture-sprint-3:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max

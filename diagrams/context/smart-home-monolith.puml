@@ -1,0 +1,20 @@
+@startuml
+title SmartHomeMonolith Context Diagram
+
+top to bottom direction
+
+!includeurl ../include/C4_Context.puml
+
+Person(user, "User", "A user of the smart home system")
+Person(integrator, "Integrator", "An integrator of heat control systems")
+System(sensor, "Sensor", "Temperature sensor")
+System(controller, "Controller", "Temperature controller")
+System(monolith, "Smart Home Monolith", "System managing heating control")
+
+Rel(user, monolith, "Uses the system")
+Rel(sensor,monolith,"Monitors temperature")
+Rel(monolith,controller,"Controls temperature")
+Rel(integrator,sensor,"Integrates new sensors to heating control system")
+Rel(integrator,controller,"Integrates new controllers to heating control system")
+
+@enduml

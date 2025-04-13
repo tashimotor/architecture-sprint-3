@@ -1,0 +1,99 @@
+@startuml
+title HTTP Adapter - Code Diagram
+
+!includeurl ../../include/C4.puml
+
+namespace com.smarthome.integration.http {
+    interface HttpAdapter {
+        + processRequest(request: HttpRequest): HttpResponse
+        + sendCommand(command: DeviceCommand): CommandResponse
+        + supportsProtocol(protocol: String): boolean
+    }
+
+    class DefaultHttpAdapter {
+        - webClient: WebClient
+        - requestConverter: RequestConverter
+        - responseConverter: ResponseConverter
+        - rateLimiter: RateLimiter
+        + processRequest(request: HttpRequest): HttpResponse
+        + sendCommand(command: DeviceCommand): CommandResponse
+        - authenticate(request: HttpRequest): boolean
+        - validateRequest(request: HttpRequest): boolean
+    }
+
+    class HttpRequest {
+        - deviceId: String
+        - headers: Map<String,String>
+        - body: String
+        - timestamp: Instant
+        + validate(): boolean
+    }
+
+    class HttpResponse {
+        - status: HttpStatus
+        - headers: Map<String,String>
+        - body: String
+    }
+
+    class DeviceCommand {
+        - deviceId: String
+        - command: String
+        - parameters: Map<String,Object>
+    }
+
+    class CommandResponse {
+        - success: boolean
+        - responseCode: String
+        - message: String
+    }
+
+    class RequestConverter {
+        + toDeviceMessage(request: HttpRequest): DeviceMessage
+        + fromDeviceMessage(message: DeviceMessage): HttpRequest
+    }
+
+    class ResponseConverter {
+        + toHttpResponse(message: DeviceMessage): HttpResponse
+        + fromHttpResponse(response: HttpResponse): DeviceMessage
+    }
+
+    class RateLimiter {
+        - rateLimitConfig: RateLimitConfig
+        + checkLimit(deviceId: String): boolean
+    }
+
+    class RateLimitConfig {
+        - requestsPerMinute: int
+        - burstCapacity: int
+    }
+
+    enum HttpStatus {
+        OK
+        BAD_REQUEST
+        UNAUTHORIZED
+        NOT_FOUND
+        SERVER_ERROR
+    }
+}
+
+' Relationships
+HttpAdapter <|.. DefaultHttpAdapter
+DefaultHttpAdapter --> RequestConverter
+DefaultHttpAdapter --> ResponseConverter
+DefaultHttpAdapter --> RateLimiter
+
+HttpRequest *-- HttpStatus
+HttpResponse *-- HttpStatus
+DeviceCommand *-- HttpStatus
+CommandResponse *-- HttpStatus
+
+RateLimiter *-- RateLimitConfig
+RequestConverter ..> DeviceMessage
+ResponseConverter ..> DeviceMessage
+
+DefaultHttpAdapter ..> HttpRequest
+DefaultHttpAdapter ..> HttpResponse
+DefaultHttpAdapter ..> DeviceCommand
+DefaultHttpAdapter ..> CommandResponse
+
+@enduml

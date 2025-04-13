@@ -1,0 +1,29 @@
+@startuml
+title SmartHome Context Diagram
+
+top to bottom direction
+
+!includeurl ../include/C4_Context.puml
+
+Person(user, "User", "A user of the smart home system")
+Person(support_manager, "Support Manager", "Customer support")
+Person(sales_manager, "Sales Manager", "Responsible for sales and marketing")
+System(sensor, "SmartHome Heat Sensor", "IOT device that gather metric data")
+System(controller, "SmartHome Heat Controller", "IOT device that control something")
+System(smarthome, "SmartHome", "Smart Home Service")
+System_Ext(partner_sensor, "Partner Sensor", "External sensor device")
+System_Ext(partner_controller, "Partner Controller", "External controller device")
+System_Ext(partner_system, "Partner System", "External partner device management system")
+
+Rel(user, smarthome, "Uses the system")
+Rel(user, sensor, "Installs sensors")
+Rel(user, controller, "Installs controllers")
+Rel(support_manager, smarthome, "Supports users with setup and troubleshooting")
+Rel(sales_manager, smarthome, "Gather analytics for marketing and sales")
+Rel(sensor, smarthome, "Sends metrics")
+Rel(smarthome, controller, "Controls something")
+Rel(partner_sensor, smarthome, "Sends metrics")
+Rel(partner_controller, smarthome, "Controls devices")
+Rel(partner_system, smarthome, "Integrates with")
+
+@enduml
